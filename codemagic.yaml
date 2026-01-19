@@ -1,0 +1,86 @@
+# 工作流名称，自定义即可
+workflows:
+  fengleme-ios-build:
+    # 运行环境：指定 macOS + 最新 Xcode 版本（兼容 iOS 原生项目）
+    environment:
+      vars:
+        # 替换成你的项目名称（和 Xcode 里的 Product Name 一致）
+        PROJECT_NAME: "fengleme"
+        # 替换成你的 Xcode Scheme 名称（默认和项目名一致）
+        SCHEME_NAME: "fengleme"
+        # 构建配置（Release 用于正式打包，Debug 用于测试）
+        BUILD_CONFIGURATION: "Release"
+        # Apple Developer Team ID（已填入你的 Team ID）
+        TEAM_ID: "YFFZ5QSD9C"
+      # 指定 Xcode 版本（最新稳定版，兼容 Swift 原生项目）
+      xcode: 15.4
+      # 自动安装 CocoaPods（项目无 Pod 依赖，不影响）
+      cocoapods: default
+
+    # 构建前准备步骤
+    scripts:
+      # 1. 清理之前的构建缓存（避免编译冲突）
+      - name: Clean Xcode build cache
+        script: |
+          xcodebuild clean \
+            -project "$PROJECT_NAME.xcodeproj" \
+            -scheme "$SCHEME_NAME" \
+            -configuration "$BUILD_CONFIGURATION" \
+            -destination 'generic/platform=iOS'
+
+      # 2. 编译并归档项目（生成 xcarchive 文件）
+      - name: Build and archive iOS project
+        script: |
+          xcodebuild archive \
+            -project "$PROJECT_NAME.xcodeproj" \
+            -scheme "$SCHEME_NAME" \
+            -configuration "$BUILD_CONFIGURATION" \
+            -destination 'generic/platform=iOS' \
+            -archivePath build/$PROJECT_NAME.xcarchive \
+            SKIP_INSTALL=NO \
+            BUILD_LIBRARY_FOR_DISTRIBUTION=YES \
+            CODE_SIGN_IDENTITY="" \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGNING_ALLOWED=NO
+
+      # 3. 导出 IPA 安装包（无需签名，用于模拟器/内测）
+      - name: Export IPA package
+        script: |
+          xcodebuild -exportArchive \
+            -archivePath build/$PROJECT_NAME.xcarchive \
+            -exportPath build/ipa \
+            -exportOptionsPlist <(cat <<EOF
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0">
+          <dict>
+              <key>method</key>
+              <string>development</string>
+              <key>teamID</key>
+              <string>$TEAM_ID</string>
+              <key>compileBitcode</key>
+              <false/>
+              <key>stripSwiftSymbols</key>
+              <true/>
+              <key>signingStyle</key>
+              <string>manual</string>
+              <key>allowProvisioningUpdates</key>
+              <true/>
+          </dict>
+          </plist>
+          EOF
+          )
+
+    # 构建产物配置（编译完成后可下载的文件）
+   # 构建产物配置（编译完成后可下载的文件）
+artifacts:
+  - build/ipa/*.ipa          # 核心产物：iOS 安装包
+  - build/*.xcarchive.zip    # 归档文件（可选）
+
+# 构建通知（失败/成功时发邮件提醒）
+publishing:
+  email:
+    recipients:
+      - liugangyuyu@outlook.com # 你的通知邮箱
+    notify_on_build_success: true
+    notify_on_build_failure: true
