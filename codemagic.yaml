@@ -13,7 +13,7 @@ workflows:
         # Apple Developer Team ID（已填入你的 Team ID）
         TEAM_ID: "YFFZ5QSD9C"
       # 指定 Xcode 版本（最新稳定版，兼容 Swift 原生项目）
-      xcode: 15.4
+      xcode: 15.3
       # 自动安装 CocoaPods（项目无 Pod 依赖，不影响）
       cocoapods: default
 
@@ -83,4 +83,5 @@ publishing:
     recipients:
       - liugangyuyu@outlook.com # 你的通知邮箱
     notify_on_build_success: true
+
     notify_on_build_failure: true
